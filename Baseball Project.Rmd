@@ -1,0 +1,120 @@
+---
+title: "Cincinnati Reds Player Evaluation Report"
+author: "Karissa Merillat"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Introduction
+
+This report analyzes whether the **Cincinnati Reds** should have signed
+or released players based on their **Runs Above Average (RAA)** in the
+2024 MLB season.\
+The analysis uses statistical modeling and visualizations in R to
+support data-driven roster decisions.
+
+------------------------------------------------------------------------
+
+# Setup
+
+\`\`\`{r setup, include=FALSE} knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+#Data Analysis
+
+First, you must decide which team you will be analyzing and look up both
+the current roster and the roster from the previous season. For my
+report, I chose the Cincinnati Reds.
+
+Load your necessary packages and data
+
+library(baseballr), library(broom), library(dpylr), library(ggcorrplot),
+library(ggplot2), library(Lahman), library(lubridate), library(mgcv)
+
+In order to compare the players with the entire MLB, you must create a
+new tibble. For my research I created my table with data since 2010.
+
+> df_teams \<- tibble(Teams) \|\> + filter(yearID \>= 2010) \|\> +
+> mutate(X1B = H - X2B - X3B - HR, BB_HBP = BB + HBP) \|\> +
+> select(yearID, R, X1B, X2B, X3B, HR, BB_HBP)
+
+Using this tibble, create an average table.
+
+> avg_team \<- df_teams \|\> + filter(yearID = 2024) \|\> +
+> summarise_all(.funs = mean)
+
+For later use, we must also create a table for average outs.
+
+> avg_outs \<- Teams \|\> + filter(yearID == 2024) \|\> + summarize(outs
+> = mean(IPouts))
+
+Now, moving on to your individual players for the team you chose. For
+each player, follow this format, changing the last name according to
+your players.
+
+> playerInfo(nameLast = "**Benson**")
+
+With this information, make sure to write down the playerID for later
+use.
+
+Ex. Benson's ID is "bensowi01"
+
+We now need tibble tables for each player.
+
+> **benson** \<- tibble(Batting) \|\> + filter(playerID ==
+> "**bensowi01**", yearID == 2024) \|\> + mutate(X1B = H - X2B - X3B -
+> HR, BB_HBP = BB + IBB + HBP, Outs = .982\*AB - H + GIDP + SF + SH +CS)
+> \|\> + select(yearID, R, X1B, X2B, X3B, HR, BB_HBP, Outs)
+
+We have to make an adjustment of the team data for each player by
+scaling. We can do this through this code.
+
+> **benson**\_scale \<- (avg_out$outs - benson$Outs)/avg_outs\$outs
+
+Using the player scale we can multiply the avg_team stats by the scale.
+
+> avg_team_w\_**benson** \<- avg_team\***benson**\_scale + +
+> select(**benson**, yearID, R, X1B, X2B, X3B, HR, BB_HBP)
+
+One last basic stat we need is the regression model of runs.
+
+> lm_runs \<- lm(R \~ . - yearID, data = df_teams)
+
+Finally, we can predict how many runs above average each player will
+score.
+
+> predict(lm_runs, newdata = avg_team_w\_**benson**) - predict(lm_runs,
+> newdata = avg_team)
+
+With this new prediction, we know whether or not the player was a good
+addition to the team or it was good to keep him on the roster. For
+players with a high positive predict, this is good. But on the other
+hand, if the player had a negative prediction, the team would be better
+without him on the team for batting purposes. There are many other
+factors to consider when signing a player but for this project we are
+only looking at the runs above average stat.
+
+
+```{r player_predictions, echo=FALSE, warning=FALSE, message=FALSE}
+# Load packages
+library(readxl)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Read the Excel file (update path if needed)
+pred_table <- read_excel("Baseball Data.xlsx", sheet = 1)
+
+# Select only the Player and Predicted_Runs columns
+pred_table <- pred_table %>%
+  select(FirstName, LastName, Prediction)
+
+# Round predictions for readability
+pred_table <- pred_table %>%
+  mutate(Prediction = round(Prediction, 3))
+
+# Display table in PDF
+kable(pred_table, caption = "Cincinnati Reds Player Predictions") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))

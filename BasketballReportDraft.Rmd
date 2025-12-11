@@ -1,0 +1,120 @@
+---
+title: "NBA Player Evaluation Report"
+author: "Karissa Merillat"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+# Introduction
+
+This report evaluates NBA player performance using data obtained through
+**nbastatR**. The goal is to determine whether players on a chosen NBA
+team contributed above or below league-average performance during the
+most recent season.
+
+The structure mirrors the baseball and football evaluations:
+1. Data and Preparation
+2. Modeling Approach
+3. Results
+4. Interpretation and Evaluation
+5. Conclusion
+
+---
+
+# Data and Preparation
+
+Start by selecting an NBA team to analyze. Retrieve the roster and
+player-level statistics for that team.
+
+Load required packages and data. (Shown in pseudo-code style, matching
+your preferred format.)
+
+> Load packages: nbastatR, dplyr, tibble, ggplot2, broom
+
+Using **nbastatR**, retrieve season statistics.
+
+> nba_data <- nbastatR::seasons_players(player_stats = TRUE, seasons = 2024)
+
+Create team-level summaries.
+
+> team_stats <- nba_data |> + filter(teamName == "TeamName") |> +
+> summarise_all(mean)
+
+Create league-wide averages for comparison.
+
+> league_stats <- nba_data |> + summarise_all(mean)
+
+Next, gather individual player data. Example code (pseudo-format as
+requested):
+
+> player_info <- nba_data |> + filter(namePlayer == "Player Name") |>
+> select(points, assists, rebounds, efficiency)
+
+Scale each player's statistics relative to league averages.
+
+> player_scale <- (league_stats$efficiency - player_info$efficiency) /
+>                  league_stats$efficiency
+
+Apply this scaling to create adjusted team statistics.
+
+> adjusted_team <- team_stats * player_scale + + select(player_info, everything())
+
+---
+
+# Modeling Approach
+
+Build a regression model to estimate player contributions based on
+standard NBA box score variables.
+
+> model_eff <- lm(efficiency ~ points + assists + rebounds,
+>                 data = nba_data)
+
+Predict how much a player contributes above or below league averages.
+
+> predict(model_eff, newdata = adjusted_team) -
+>   predict(model_eff, newdata = league_stats)
+
+---
+
+# Results
+
+```{r nba_results, echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Placeholder example table (replace with real nbastatR results)
+nba_table <- tibble(
+  FirstName = c("Player1", "Player2"),
+  LastName = c("Last1", "Last2"),
+  PredictedValue = c(1.23, -0.54)
+)
+
+kable(nba_table, caption = "NBA Player Performance Predictions") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+---
+
+# Interpretation and Evaluation
+
+Players with **positive predicted values** contribute above the league
+average (based on the chosen efficiency or scoring metric). Negative
+values suggest below-average contributions.
+
+Because basketball performance depends heavily on role, minutes played,
+usage rate, and team dynamics, these predictions should be considered
+alongside contextual factors.
+
+---
+
+# Conclusion
+
+This NBA evaluation replicates the analytical structure used for
+baseball and football—combining pseudo-coded data preparation, modeling,
+and prediction to estimate whether individual players helped their team
+beyond league-average expectations. This framework can be extended to
+multiple NBA teams or integrated into multi-sport analytics projects.

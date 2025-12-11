@@ -1,0 +1,119 @@
+---
+title: "NFL Player Evaluation Report"
+author: "Karissa Merillat"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+# Introduction
+
+This report evaluates NFL player performance using **Runs Added-style** 
+metrics adapted for football, leveraging the `NFLsimulatoR` package. The 
+purpose is to determine whether players on a chosen NFL team contributed 
+more or less than an average replacement-level player during the most 
+recent season.
+
+The structure of this report mirrors the baseball evaluation framework:
+1. Data and Preparation
+2. Modeling Approach
+3. Results
+4. Interpretation and Evaluation
+5. Conclusion
+
+---
+
+# Data and Preparation
+
+Begin by selecting an NFL team to evaluate. For this report, you may choose 
+any team, retrieving both current-season and prior-season roster data.
+
+Load all necessary packages and retrieve NFL play-by-play and player-level 
+statistics.
+
+> Load packages: NFLsimulatoR, dplyr, tibble, ggplot2, broom
+
+Using `NFLsimulatoR`, import simulated or historical performance data.
+
+> nfl_data <- load_nfl_data(year = 2024)
+
+Next, prepare team-level summaries for comparison.
+
+> team_summary <- nfl_data |> + filter(team == "TeamName") |> +
+> summarise_all(mean)
+
+Similarly, compute league-wide averages.
+
+> league_summary <- nfl_data |> + summarise_all(mean)
+
+To analyze individual players, extract each player's relevant performance 
+statistics (examples depend on positional context).
+
+> player_stats <- nfl_data |> + filter(player_id == "exampleID") |> +
+> select(yards, touchdowns, EP_added, success_rate)
+
+Scale each player's performance relative to league averages.
+
+> player_scale <- (league_summary$EP_added - player_stats$EP_added) /
+>                  league_summary$EP_added
+
+Apply the scaling factor.
+
+> adjusted_team <- team_summary * player_scale + + select(player_stats, everything())
+
+---
+
+# Modeling Approach
+
+Build a regression model to estimate expected points added (EPA) or similar 
+performance measures.
+
+> model_epa <- lm(EP_added ~ yards + touchdowns + success_rate,
+>                 data = nfl_data)
+
+Predict player contributions above or below league average.
+
+> predict(model_epa, newdata = adjusted_team) -
+>   predict(model_epa, newdata = league_summary)
+
+---
+
+# Results
+
+```{r nfl_results, echo=FALSE, warning=FALSE, message=FALSE}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Placeholder example table (replace with your real dataset)
+nfl_table <- tibble(
+  FirstName = c("Player1", "Player2"),
+  LastName = c("Last1", "Last2"),
+  PredictedValue = c(0.45, -0.12)
+)
+
+kable(nfl_table, caption = "NFL Player Performance Predictions") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+---
+
+# Interpretation and Evaluation
+
+Players with **positive predicted values** contribute above the league 
+average using the chosen performance metric (e.g., EPA). Negative values 
+suggest underperformance relative to league norms.
+
+This evaluation must be interpreted alongside team role, play-calling, 
+injury status, and defensive/offensive schemes.
+
+---
+
+# Conclusion
+
+This NFL analysis framework—mirroring the baseball RAA approach—uses 
+scaling, modeling, and prediction to determine player value relative to 
+league averages. This structure can be replicated for multiple teams and 
+expanded into large-scale player evaluation projects.

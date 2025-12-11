@@ -1,0 +1,155 @@
+---
+title: "Cincinnati Reds Player Evaluation Report"
+author: "Karissa Merillat"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+# Introduction
+
+The purpose of this report is to evaluate whether the **Cincinnati Reds** 
+made effective roster decisions for the 2024 season by examining players' 
+**Runs Above Average (RAA)**. This measure helps determine whether keeping 
+or signing a player contributed positively to the team's offensive run 
+production. The analysis uses R, player-level statistics, and models that 
+estimate how individual contributions compare to league-wide averages.
+
+The report follows these sections:
+1. Data and Preparation
+2. Modeling Approach
+3. Results
+4. Interpretation and Evaluation
+5. Conclusion
+
+---
+
+# Data and Preparation
+
+The first step in the analysis is to decide which team to examine and gather 
+its current and previous season rosters. For this project, the Cincinnati 
+Reds were selected.
+
+To begin, load all necessary packages and datasets. (Shown in pseudo-code 
+as written.)
+
+> Load packages: baseballr, broom, dplyr, ggcorrplot, ggplot2, Lahman, 
+> lubridate, mgcv
+
+To compare individual team players to the overall MLB environment, you must 
+construct a league-wide dataset. For this report, data from 2010 onward was 
+used.
+
+> df_teams <- tibble(Teams) |> + filter(yearID >= 2010) |> +
+> mutate(X1B = H - X2B - X3B - HR,
+>        BB_HBP = BB + HBP) |>
+> select(yearID, R, X1B, X2B, X3B, HR, BB_HBP)
+
+Next, create a table representing the average MLB team performance.
+
+> avg_team <- df_teams |> + filter(yearID = 2024) |> + summarise_all(mean)
+
+A separate table is needed for average outs per team.
+
+> avg_outs <- Teams |> + filter(yearID == 2024) |> + summarize(outs = mean(IPouts))
+
+Now, move on to individual player analysis. For each player, begin by 
+retrieving their basic information.
+
+> playerInfo(nameLast = "Benson")
+
+Be sure to record each player's `playerID`, which is used later.
+
+Example: Benson's ID is "bensowi01".
+
+Create a tibble for each player using their playerID.
+
+> benson <- tibble(Batting) |>
+> filter(playerID == "bensowi01", yearID == 2024) |>
+> mutate(X1B = H - X2B - X3B - HR,
+>        BB_HBP = BB + IBB + HBP,
+>        Outs = .982*AB - H + GIDP + SF + SH + CS) |>
+> select(yearID, R, X1B, X2B, X3B, HR, BB_HBP, Outs)
+
+Each player's performance must be scaled relative to team averages.
+
+> benson_scale <- (avg_outs$outs - benson$Outs) / avg_outs$outs
+
+Use this scale to adjust MLB averages.
+
+> avg_team_w_benson <- avg_team * benson_scale + +
+> select(benson, yearID, R, X1B, X2B, X3B, HR, BB_HBP)
+
+---
+
+# Modeling Approach
+
+A regression model is needed to estimate team runs based on the statistical 
+predictors included in the dataset.
+
+> lm_runs <- lm(R ~ . - yearID, data = df_teams)
+
+This model will later be used to estimate the runs above average that each 
+player contributes.
+
+To compute this, apply the model to the scaled-and-adjusted player data.
+
+> predict(lm_runs, newdata = avg_team_w_benson) -
+>   predict(lm_runs, newdata = avg_team)
+
+A positive value indicates the player likely contributes above-average runs; 
+a negative value suggests the opposite.
+
+---
+
+# Results
+
+```{r player_predictions, echo=FALSE, warning=FALSE, message=FALSE}
+# Load packages
+library(readxl)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Read the Excel file (path may be updated)
+pred_table <- read_excel("Baseball Data.xlsx", sheet = 1)
+
+# Select variables
+pred_table <- pred_table %>% select(FirstName, LastName, Prediction)
+
+# Round predictions
+pred_table <- pred_table %>% mutate(Prediction = round(Prediction, 3))
+
+# Display table
+kable(pred_table, caption = "Cincinnati Reds Player Predictions") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+---
+
+# Interpretation and Evaluation
+
+Based on the model predictions, players with **positive** predicted values 
+are projected to contribute **more runs than an average MLB player**. These 
+players appear to be strong assets offensively. Those with **negative** 
+predictions may not contribute as effectively to run scoring, suggesting the 
+team might consider replacing or re-evaluating them.
+
+While the RAA estimate provides a valuable signal, roster decisions also 
+include many additional factors such as defensive ability, contract terms, 
+in-game situational roles, and long-term player development. This analysis 
+focuses only on offensive contributions through predicted runs.
+
+---
+
+# Conclusion
+
+This report analyzed Cincinnati Reds players’ offensive contributions using 
+pseudo-coded data preparation steps, scaling adjustments, and regression-based 
+predictions of team run production. By interpreting these predicted run values, 
+we can better understand whether individual players added value above the MLB
+average during the 2024 season. The structured framework used here can be 
+extended to other teams or adapted to similar evaluation processes in football 
+and basketball for future work.

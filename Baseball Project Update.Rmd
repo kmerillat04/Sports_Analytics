@@ -35,8 +35,37 @@ Reds were selected.
 To begin, load all necessary packages and datasets. (Shown in pseudo-code 
 as written.)
 
-> Load packages: baseballr, broom, dplyr, ggcorrplot, ggplot2, Lahman, 
-> lubridate, mgcv
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(dplyr)
+library(baseballr)
+library(broom)
+library(ggplot2)
+library(ggcorrplot)
+library(Lahman)
+library(lubridate)
+library(mgcv)
+
+pkg_table <- tibble::tibble(
+Package = c("dplyr", "baseballr", "broom", "ggplot2", "ggcorrplot",
+"Lahman", "lubridate", "mgcv"),
+Purpose = c(
+"Data manipulation",
+"Accessing MLB data and statistics",
+"Tidying model outputs",
+"Creating visualizations",
+"Correlation heatmaps",
+"Historical MLB data",
+"Handling dates",
+"Generalized additive modeling"
+)
+)
+
+knitr::kable(pkg_table, caption = "Packages Used in the Analysis")
+```
 
 To compare individual team players to the overall MLB environment, you must 
 construct a league-wide dataset. For this report, data from 2010 onward was 
